@@ -16,8 +16,7 @@ PLOTLY_LAYOUT = dict(
     paper_bgcolor="rgba(0,0,0,0)",
     plot_bgcolor="rgba(0,0,0,0)",
     font=dict(color="#1e1e2e", family="Inter"),
-    margin=dict(l=10, r=10, t=50, b=40),
-    xaxis=dict(gridcolor="rgba(0,0,0,0.04)", showline=False, tickangle=0),
+    margin=dict(l=10, r=10, t=50, b=60),
     yaxis=dict(gridcolor="rgba(0,0,0,0.04)", showline=False,
                tickformat=".0f", ticksuffix="%"),
 )
