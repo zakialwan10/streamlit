@@ -128,7 +128,7 @@ def build_mom_data(df: pd.DataFrame) -> pd.DataFrame:
 
 def show_trend_charts(df: pd.DataFrame, title_prefix: str = ""):
     """
-    Tampilkan WoW dan MoM trend charts.
+    Tampilkan WoW dan MoM trend charts dengan filter rentang.
     df harus punya kolom: tanggal, booking, show_up, paid
     """
     if df.empty:
@@ -141,6 +141,9 @@ def show_trend_charts(df: pd.DataFrame, title_prefix: str = ""):
         📊 Tren Show Up % & Paid %{" — " + title_prefix if title_prefix else ""}
     </h3>""", unsafe_allow_html=True)
 
+    df = df.copy()
+    df["tanggal"] = pd.to_datetime(df["tanggal"])
+
     view = st.radio(
         "Tampilan",
         ["Week on Week", "Month on Month"],
@@ -149,20 +152,60 @@ def show_trend_charts(df: pd.DataFrame, title_prefix: str = ""):
         label_visibility="collapsed",
     )
 
+    bulan_names = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"]
+
     if view == "Week on Week":
-        data = build_wow_data(df)
+        # ── Filter rentang minggu ─────────────────────────────────────────────
+        data_wow = build_wow_data(df)
+        if data_wow.empty:
+            st.info("Belum cukup data untuk chart Week on Week.")
+            return
+
+        total_weeks = len(data_wow)
+        col_f1, col_f2, _ = st.columns([1, 1, 3])
+        with col_f1:
+            min_w = st.number_input("Dari minggu ke-", min_value=1,
+                                    max_value=total_weeks, value=max(1, total_weeks-7),
+                                    key=f"wow_from_{title_prefix}")
+        with col_f2:
+            max_w = st.number_input("Sampai minggu ke-", min_value=1,
+                                    max_value=total_weeks, value=total_weeks,
+                                    key=f"wow_to_{title_prefix}")
+
+        data_filtered = data_wow.iloc[int(min_w)-1 : int(max_w)].reset_index(drop=True)
+        labels      = data_filtered["label"].tolist()
+        showup_vals = data_filtered["showup_pct"].tolist()
+        paid_vals   = data_filtered["paid_pct"].tolist()
         period_label = "Minggu"
+
     else:
-        data = build_mom_data(df)
+        # ── Filter rentang bulan ──────────────────────────────────────────────
+        data_mom = build_mom_data(df)
+        if data_mom.empty:
+            st.info("Belum cukup data untuk chart Month on Month.")
+            return
+
+        available_months = data_mom["label"].tolist()
+        col_f1, col_f2, _ = st.columns([1, 1, 2])
+        with col_f1:
+            from_month = st.selectbox("Dari bulan", available_months,
+                                      index=0,
+                                      key=f"mom_from_{title_prefix}")
+        with col_f2:
+            to_month = st.selectbox("Sampai bulan", available_months,
+                                    index=len(available_months)-1,
+                                    key=f"mom_to_{title_prefix}")
+
+        from_idx = available_months.index(from_month)
+        to_idx   = available_months.index(to_month)
+        if from_idx > to_idx:
+            from_idx, to_idx = to_idx, from_idx
+
+        data_filtered = data_mom.iloc[from_idx : to_idx+1].reset_index(drop=True)
+        labels      = data_filtered["label"].tolist()
+        showup_vals = data_filtered["showup_pct"].tolist()
+        paid_vals   = data_filtered["paid_pct"].tolist()
         period_label = "Bulan"
-
-    if data.empty:
-        st.info(f"Belum cukup data untuk chart {view}.")
-        return
-
-    labels      = data["label"].tolist()
-    showup_vals = data["showup_pct"].tolist()
-    paid_vals   = data["paid_pct"].tolist()
 
     col1, col2 = st.columns(2)
     with col1:

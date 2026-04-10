@@ -15,7 +15,7 @@ SPREADSHEET_ID = "11fP61xXfqgP3KnXPbBRSd22YSzixKYPM7GPLHR4c6YQ"
 ALL_CENTERS = ["TBT", "KGD", "KLM", "BTR", "BTY", "BDM", "BAL", "SUN", "PKY", "PLM"]
 
 # Center yang sudah punya sheet performance (untuk uji coba)
-ACTIVE_CENTERS = ["BTR", "KGD", "KLM", "TBT", "BTY", "BDM"]
+ACTIVE_CENTERS = ["TBT", "KGD"]
 
 
 @st.cache_resource(show_spinner=False)
@@ -76,7 +76,28 @@ def get_performance_df(center_code: str) -> pd.DataFrame:
                 return pd.DataFrame()
 
 
-def clean_int(val) -> int:
+MONTH_ID = {
+    "Jan": "Jan", "Feb": "Feb", "Mar": "Mar", "Apr": "Apr",
+    "Mei": "May", "Jun": "Jun", "Jul": "Jul", "Agu": "Aug",
+    "Ags": "Aug", "Sep": "Sep", "Okt": "Oct", "Nov": "Nov",
+    "Des": "Dec", "Maret": "Mar", "Agustus": "Aug",
+    "Oktober": "Oct", "Desember": "Dec", "Januari": "Jan",
+    "Februari": "Feb", "April": "Apr", "Mei": "May",
+    "Juni": "Jun", "Juli": "Jul", "September": "Sep",
+    "November": "Nov",
+}
+
+def parse_tanggal(val: str):
+    """Parse tanggal dengan support nama bulan Bahasa Indonesia."""
+    if not val or not val.strip():
+        return pd.NaT
+    s = val.strip()
+    # Ganti nama bulan Indonesia ke Inggris
+    for id_month, en_month in MONTH_ID.items():
+        if id_month in s:
+            s = s.replace(id_month, en_month)
+            break
+    return pd.to_datetime(s, dayfirst=True, errors="coerce")
     """Bersihkan nilai dari Google Sheets yang bisa berupa '3)', '3', atau ''."""
     if not val or str(val).strip() == "":
         return 0
@@ -132,7 +153,7 @@ def parse_performance_sheet(raw: list, center_code: str) -> pd.DataFrame:
                 tanggal_raw = row[g["col_tanggal"]].strip() if g["col_tanggal"] < len(row) else ""
                 if not tanggal_raw:
                     continue
-                tanggal = pd.to_datetime(tanggal_raw, dayfirst=True, errors="coerce")
+                tanggal = parse_tanggal(tanggal_raw)
                 if pd.isna(tanggal):
                     continue
                 booking = clean_int(row[g["col_booking"]] if g["col_booking"] < len(row) else "")
