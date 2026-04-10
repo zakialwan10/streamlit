@@ -15,7 +15,7 @@ SPREADSHEET_ID = "11fP61xXfqgP3KnXPbBRSd22YSzixKYPM7GPLHR4c6YQ"
 ALL_CENTERS = ["TBT", "KGD", "KLM", "BTR", "BTY", "BDM", "BAL", "SUN", "PKY", "PLM"]
 
 # Center yang sudah punya sheet performance (untuk uji coba)
-ACTIVE_CENTERS = ["TBT", "KGD"]
+ACTIVE_CENTERS = ["BTR", "KGD", "KLM", "TBT", "BTY", "BDM"]
 
 
 @st.cache_resource(show_spinner=False)
