@@ -11,25 +11,54 @@ SCOPES = [
 
 SPREADSHEET_ID = "11fP61xXfqgP3KnXPbBRSd22YSzixKYPM7GPLHR4c6YQ"
 
-# Daftar semua center — tambahkan center baru di sini
-ALL_CENTERS = ["TBT", "KGD", "KLM", "BTR", "BTY", "BDM", "BAL", "SUN", "PKY", "PLM"]
+ALL_CENTERS    = ["BTR", "KGD", "KLM", "TBT", "BTY", "BDM", "BAL", "SUN", "PKY", "PLM"]
+ACTIVE_CENTERS = ["BTR", "KGD", "KLM", "TBT", "BTY", "BDM"]  # update sesuai kebutuhan
 
-# Center yang sudah punya sheet performance (untuk uji coba)
-ACTIVE_CENTERS = ["TBT", "KGD"]
+MONTH_ID = {
+    "Januari": "January", "Februari": "February", "Maret": "March",
+    "April": "April", "Mei": "May", "Juni": "June",
+    "Juli": "July", "Agustus": "August", "Ags": "Aug",
+    "September": "September", "Oktober": "October", "November": "November",
+    "Desember": "December", "Jan": "Jan", "Feb": "Feb",
+    "Mar": "Mar", "Apr": "Apr", "Jun": "Jun",
+    "Jul": "Jul", "Agu": "Aug", "Sep": "Sep",
+    "Okt": "Oct", "Nov": "Nov", "Des": "Dec",
+}
+
+
+def parse_tanggal(val: str):
+    """Parse tanggal dengan support nama bulan Bahasa Indonesia."""
+    if not val or not str(val).strip():
+        return pd.NaT
+    s = str(val).strip()
+    for id_month, en_month in MONTH_ID.items():
+        if id_month in s:
+            s = s.replace(id_month, en_month)
+            break
+    return pd.to_datetime(s, dayfirst=True, errors="coerce")
+
+
+def clean_int(val) -> int:
+    """Bersihkan nilai Google Sheets seperti '3)', '0)', menjadi integer."""
+    if not val or str(val).strip() == "":
+        return 0
+    try:
+        cleaned = ''.join(c for c in str(val) if c.isdigit() or c == '-')
+        return int(cleaned) if cleaned else 0
+    except:
+        return 0
 
 
 @st.cache_resource(show_spinner=False)
 def get_gspread_client():
     creds = Credentials.from_service_account_info(
-        st.secrets["gcp_service_account"],
-        scopes=SCOPES
+        st.secrets["gcp_service_account"], scopes=SCOPES
     )
     return gspread.authorize(creds)
 
 
 @st.cache_data(ttl=300, show_spinner=False)
 def get_sheet_df(sheet_name: str) -> pd.DataFrame:
-    """Ambil sheet biasa (users, centers, targets) sebagai DataFrame."""
     max_retries = 3
     for attempt in range(max_retries):
         try:
@@ -47,86 +76,21 @@ def get_sheet_df(sheet_name: str) -> pd.DataFrame:
                 return pd.DataFrame()
 
 
-@st.cache_data(ttl=300, show_spinner=False)
-def get_performance_df(center_code: str) -> pd.DataFrame:
-    """
-    Ambil sheet performance_[CENTER] yang strukturnya horizontal.
-    Baris 1 = header kosong / nama EC
-    Baris 2 = nama EC (Juan, Amanda, dst)
-    Baris 3 = sub-header (tanggal, booking, show up, paid)
-    Baris 4+ = data harian
-
-    Return DataFrame panjang dengan kolom:
-    tanggal | nama_ec | booking | show_up | paid | center
-    """
-    max_retries = 3
-    for attempt in range(max_retries):
-        try:
-            client = get_gspread_client()
-            spreadsheet = client.open_by_key(SPREADSHEET_ID)
-            worksheet = spreadsheet.worksheet(f"performance_{center_code}")
-            raw = worksheet.get_all_values()
-            return parse_performance_sheet(raw, center_code)
-        except Exception as e:
-            if attempt < max_retries - 1:
-                time.sleep(2)
-                get_gspread_client.clear()
-            else:
-                st.error(f"Gagal mengambil data performance_{center_code}.")
-                return pd.DataFrame()
-
-
-MONTH_ID = {
-    "Jan": "Jan", "Feb": "Feb", "Mar": "Mar", "Apr": "Apr",
-    "Mei": "May", "Jun": "Jun", "Jul": "Jul", "Agu": "Aug",
-    "Ags": "Aug", "Sep": "Sep", "Okt": "Oct", "Nov": "Nov",
-    "Des": "Dec", "Maret": "Mar", "Agustus": "Aug",
-    "Oktober": "Oct", "Desember": "Dec", "Januari": "Jan",
-    "Februari": "Feb", "April": "Apr", "Mei": "May",
-    "Juni": "Jun", "Juli": "Jul", "September": "Sep",
-    "November": "Nov",
-}
-
-def parse_tanggal(val: str):
-    """Parse tanggal dengan support nama bulan Bahasa Indonesia."""
-    if not val or not val.strip():
-        return pd.NaT
-    s = val.strip()
-    # Ganti nama bulan Indonesia ke Inggris
-    for id_month, en_month in MONTH_ID.items():
-        if id_month in s:
-            s = s.replace(id_month, en_month)
-            break
-    return pd.to_datetime(s, dayfirst=True, errors="coerce")
-    """Bersihkan nilai dari Google Sheets yang bisa berupa '3)', '3', atau ''."""
-    if not val or str(val).strip() == "":
-        return 0
-    try:
-        # Hapus semua karakter non-digit kecuali minus
-        cleaned = ''.join(c for c in str(val) if c.isdigit() or c == '-')
-        return int(cleaned) if cleaned else 0
-    except:
-        return 0
-
-
 def parse_performance_sheet(raw: list, center_code: str) -> pd.DataFrame:
     """
-    Parse sheet horizontal menjadi DataFrame panjang.
-    Struktur sheet:
-      Row 0: link
-      Row 1: nama EC di col 0, 6, 12, 18, ... (setiap 6 kolom)
-      Row 2: header (tanggal, booking, show up, paid) per grup
-      Row 3+: data harian
-    Nilai dari Google Sheets bisa berupa '3)', '0)', dll — perlu dibersihkan.
+    Parse sheet performance horizontal.
+    Row 0: link
+    Row 1: nama EC di col 0, 6, 12, 18, ...
+    Row 2: header (tanggal, booking, show up, paid) per grup
+    Row 3+: data harian
     """
     if len(raw) < 4:
         return pd.DataFrame()
 
-    row_ec_names = raw[1]
+    row_ec_names  = raw[1]
     row_subheader = raw[2]
-    data_rows = raw[3:]
+    data_rows     = raw[3:]
 
-    # Cari posisi grup EC berdasarkan header "tanggal"
     groups = []
     i = 0
     while i < len(row_subheader):
@@ -135,7 +99,7 @@ def parse_performance_sheet(raw: list, center_code: str) -> pd.DataFrame:
             ec_name = row_ec_names[i].strip() if i < len(row_ec_names) else ""
             if ec_name:
                 groups.append({
-                    "nama_ec": ec_name,
+                    "nama_ec":    ec_name,
                     "col_tanggal": i,
                     "col_booking": i + 1,
                     "col_showup":  i + 2,
@@ -145,7 +109,6 @@ def parse_performance_sheet(raw: list, center_code: str) -> pd.DataFrame:
         else:
             i += 1
 
-    # Bangun DataFrame panjang
     records = []
     for row in data_rows:
         for g in groups:
@@ -174,8 +137,26 @@ def parse_performance_sheet(raw: list, center_code: str) -> pd.DataFrame:
 
 
 @st.cache_data(ttl=300, show_spinner=False)
+def get_performance_df(center_code: str) -> pd.DataFrame:
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            client = get_gspread_client()
+            spreadsheet = client.open_by_key(SPREADSHEET_ID)
+            worksheet = spreadsheet.worksheet(f"performance_{center_code}")
+            raw = worksheet.get_all_values()
+            return parse_performance_sheet(raw, center_code)
+        except Exception as e:
+            if attempt < max_retries - 1:
+                time.sleep(2)
+                get_gspread_client.clear()
+            else:
+                st.error(f"Gagal mengambil data performance_{center_code}.")
+                return pd.DataFrame()
+
+
+@st.cache_data(ttl=300, show_spinner=False)
 def get_all_performance(centers: list = None) -> pd.DataFrame:
-    """Gabungkan performance dari semua center aktif."""
     if centers is None:
         centers = ACTIVE_CENTERS
     dfs = []
@@ -205,11 +186,11 @@ def login_user(username: str, password: str):
         if not user.empty:
             row = user.iloc[0]
             return {
-                "username": row["username"],
-                "password": row["password"],
-                "role": row["role"].upper(),
-                "nama_lengkap": row["nama_lengkap"],
-                "center_id": row["center_id"],
+                "username":    row["username"],
+                "password":    row["password"],
+                "role":        row["role"].upper(),
+                "nama_lengkap":row["nama_lengkap"],
+                "center_id":   row["center_id"],
             }
         return None
     except Exception as e:
