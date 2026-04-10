@@ -88,12 +88,14 @@ def make_bar_chart(labels, values, title, bar_color, show_delta_last=True):
 # ── WoW Chart ─────────────────────────────────────────────────────────────────
 
 def build_wow_data(df: pd.DataFrame) -> pd.DataFrame:
-    """Agregat data per minggu."""
+    """Agregat data per minggu, hanya sampai hari ini."""
     if df is None or df.empty:
         return pd.DataFrame()
     df = df.copy()
     df["tanggal"] = pd.to_datetime(df["tanggal"], errors="coerce")
     df = df.dropna(subset=["tanggal"])
+    today = pd.Timestamp.now().normalize()
+    df = df[df["tanggal"] <= today]
     if df.empty:
         return pd.DataFrame()
     df["week_start"] = df["tanggal"].dt.to_period("W").apply(lambda p: p.start_time)
@@ -117,12 +119,14 @@ def build_wow_data(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_mom_data(df: pd.DataFrame) -> pd.DataFrame:
-    """Agregat data per bulan."""
+    """Agregat data per bulan, hanya sampai hari ini."""
     if df is None or df.empty:
         return pd.DataFrame()
     df = df.copy()
     df["tanggal"] = pd.to_datetime(df["tanggal"], errors="coerce")
     df = df.dropna(subset=["tanggal"])
+    today = pd.Timestamp.now().normalize()
+    df = df[df["tanggal"] <= today]
     if df.empty:
         return pd.DataFrame()
     df["month"] = df["tanggal"].dt.to_period("M")
@@ -155,13 +159,97 @@ def show_trend_charts(df: pd.DataFrame, title_prefix: str = ""):
         return
 
     st.markdown(f"""
-    <h3 style='font-family:"Plus Jakarta Sans",sans-serif; font-size:0.95rem;
-        font-weight:700; color:#3d3d5c; margin-bottom:0.5rem;'>
-        📊 Tren Show Up % & Paid %{" — " + title_prefix if title_prefix else ""}
-    </h3>""", unsafe_allow_html=True)
+    <div style='background:#ffffff; border:1px solid #dde0f0; border-radius:16px;
+        padding:1.2rem 1.5rem; margin-bottom:1rem;
+        box-shadow: 0 2px 8px rgba(91,82,232,0.06);'>
+        <div style='display:flex; align-items:center; gap:0.6rem;'>
+            <span style='font-size:1.1rem;'>📊</span>
+            <span style='font-family:"Plus Jakarta Sans",sans-serif; font-size:1rem;
+                font-weight:700; color:#3d3d5c;'>
+                Tren Show Up (%) & Paid (%)
+                {f"<span style='color:#9194b3; font-weight:500;'> — {title_prefix}</span>" if title_prefix else ""}
+            </span>
+        </div>
+    </div>""", unsafe_allow_html=True)
 
     df = df.copy()
     df["tanggal"] = pd.to_datetime(df["tanggal"])
+
+    view = st.radio(
+        "Tampilan",
+        ["Week on Week", "Month on Month"],
+        horizontal=True,
+        key=f"trend_view_{title_prefix}",
+        label_visibility="collapsed",
+    )
+
+    if view == "Week on Week":
+        data_wow = build_wow_data(df)
+        if data_wow.empty:
+            st.info("Belum cukup data untuk chart Week on Week.")
+            return
+
+        total_weeks = len(data_wow)
+        col_f1, col_f2, _ = st.columns([1, 1, 3])
+        with col_f1:
+            min_w = st.number_input("Dari minggu ke-", min_value=1,
+                                    max_value=total_weeks, value=max(1, total_weeks-7),
+                                    key=f"wow_from_{title_prefix}")
+        with col_f2:
+            max_w = st.number_input("Sampai minggu ke-", min_value=1,
+                                    max_value=total_weeks, value=total_weeks,
+                                    key=f"wow_to_{title_prefix}")
+
+        data_filtered = data_wow.iloc[int(min_w)-1 : int(max_w)].reset_index(drop=True)
+        labels      = data_filtered["label"].tolist()
+        showup_vals = data_filtered["showup_pct"].tolist()
+        paid_vals   = data_filtered["paid_pct"].tolist()
+        period_label = "Minggu"
+
+    else:
+        data_mom = build_mom_data(df)
+        if data_mom.empty:
+            st.info("Belum cukup data untuk chart Month on Month.")
+            return
+
+        available_months = data_mom["label"].tolist()
+        col_f1, col_f2, _ = st.columns([1, 1, 2])
+        with col_f1:
+            from_month = st.selectbox("Dari bulan", available_months,
+                                      index=0,
+                                      key=f"mom_from_{title_prefix}")
+        with col_f2:
+            to_month = st.selectbox("Sampai bulan", available_months,
+                                    index=len(available_months)-1,
+                                    key=f"mom_to_{title_prefix}")
+
+        from_idx = available_months.index(from_month)
+        to_idx   = available_months.index(to_month)
+        if from_idx > to_idx:
+            from_idx, to_idx = to_idx, from_idx
+
+        data_filtered = data_mom.iloc[from_idx : to_idx+1].reset_index(drop=True)
+        labels      = data_filtered["label"].tolist()
+        showup_vals = data_filtered["showup_pct"].tolist()
+        paid_vals   = data_filtered["paid_pct"].tolist()
+        period_label = "Bulan"
+
+    col1, col2 = st.columns(2)
+    with col1:
+        fig1 = make_bar_chart(
+            labels, showup_vals,
+            f"Show Up (%) per {period_label}",
+            "rgba(91,82,232,0.7)"
+        )
+        st.plotly_chart(fig1, use_container_width=True)
+
+    with col2:
+        fig2 = make_bar_chart(
+            labels, paid_vals,
+            f"Paid (%) per {period_label}",
+            "rgba(5,150,105,0.7)"
+        )
+        st.plotly_chart(fig2, use_container_width=True)
 
     view = st.radio(
         "Tampilan",
