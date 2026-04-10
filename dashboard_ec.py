@@ -115,9 +115,10 @@ def show_ec_dashboard():
     with g2:
         st.plotly_chart(make_gauge("Paid %", paid_pct, "#059669"), use_container_width=True)
 
-    # ── Grafik Harian ─────────────────────────────────────────────────────────
-    st.markdown("""<h3 style='font-family:'Plus Jakarta Sans',sans-serif; font-size:0.95rem; font-weight:700;
-        color:#3d3d5c; margin-bottom:1rem;'>📅 Tren Harian</h3>""", unsafe_allow_html=True)
+    # ── WoW / MoM Trend Charts ────────────────────────────────────────────────
+    st.markdown("<br>", unsafe_allow_html=True)
+    from charts_trend import show_trend_charts
+    show_trend_charts(df_ec, nama)
 
     # ── Performance Score ─────────────────────────────────────────────────────
     st.markdown("<br>", unsafe_allow_html=True)

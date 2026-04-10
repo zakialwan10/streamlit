@@ -173,6 +173,11 @@ def show_cm_dashboard():
         fig2.update_layout(**PLOTLY_LAYOUT, yaxis_range=[0, 110])
         st.plotly_chart(fig2, use_container_width=True)
 
+    # ── WoW / MoM Trend Charts ────────────────────────────────────────────────
+    st.markdown("<br>", unsafe_allow_html=True)
+    from charts_trend import show_trend_charts
+    show_trend_charts(df, f"Center {center_id}")
+
 
 def show_cm_score_table(center_id: str, bulan_label: str):
     """Tampilkan tabel score semua EC di center CM."""

@@ -263,31 +263,13 @@ def show_ho_dashboard():
             """, unsafe_allow_html=True)
 
     with tab3:
-        st.markdown("#### 📈 Tren Bulanan")
-        df_year = df_all[df_all["tanggal"].dt.year == tahun].copy()
+        st.markdown("#### 📈 Tren Show Up % & Paid %")
+        df_trend = df_all.copy()
         if selected_center != "Semua Center":
-            df_year = df_year[df_year["center"] == selected_center]
+            df_trend = df_trend[df_trend["center"] == selected_center]
         if selected_ec != "Semua EC":
-            df_year = df_year[df_year["nama_ec"] == selected_ec]
+            df_trend = df_trend[df_trend["nama_ec"] == selected_ec]
 
-        if not df_year.empty:
-            df_year["bulan"] = df_year["tanggal"].dt.month
-            monthly = df_year.groupby("bulan").agg(
-                booking=("booking","sum"), show_up=("show_up","sum"), paid=("paid","sum")
-            ).reset_index()
-            monthly["showup_pct"] = monthly.apply(lambda r: safe_pct(r["show_up"], r["booking"]), axis=1)
-            monthly["paid_pct"]   = monthly.apply(lambda r: safe_pct(r["paid"], r["show_up"]), axis=1)
-            monthly["bulan_label"] = monthly["bulan"].apply(lambda x: bulan_names[x-1])
-
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(x=monthly["bulan_label"], y=monthly["showup_pct"],
-                name="Show Up %", mode="lines+markers",
-                line=dict(color="#5b52e8", width=2.5), marker=dict(size=7)))
-            fig.add_trace(go.Scatter(x=monthly["bulan_label"], y=monthly["paid_pct"],
-                name="Paid %", mode="lines+markers",
-                line=dict(color="#059669", width=2.5), marker=dict(size=7)))
-            fig.update_layout(**PLOTLY_LAYOUT, yaxis_range=[0,110],
-                legend=dict(orientation="h", y=1.1, font=dict(color="#1e1e2e")))
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info("Belum ada data untuk filter yang dipilih.")
+        from charts_trend import show_trend_charts
+        prefix = selected_ec if selected_ec != "Semua EC" else (selected_center if selected_center != "Semua Center" else "Semua Center")
+        show_trend_charts(df_trend, prefix)
