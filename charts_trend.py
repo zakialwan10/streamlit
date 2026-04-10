@@ -88,42 +88,57 @@ def make_bar_chart(labels, values, title, bar_color, show_delta_last=True):
 # ── WoW Chart ─────────────────────────────────────────────────────────────────
 
 def build_wow_data(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Agregat data per minggu.
-    df harus punya kolom: tanggal, booking, show_up, paid
-    """
-    if df.empty:
+    """Agregat data per minggu."""
+    if df is None or df.empty:
         return pd.DataFrame()
     df = df.copy()
-    df["tanggal"] = pd.to_datetime(df["tanggal"])
+    df["tanggal"] = pd.to_datetime(df["tanggal"], errors="coerce")
+    df = df.dropna(subset=["tanggal"])
+    if df.empty:
+        return pd.DataFrame()
     df["week_start"] = df["tanggal"].dt.to_period("W").apply(lambda p: p.start_time)
     weekly = df.groupby("week_start").agg(
         booking=("booking", "sum"),
         show_up=("show_up", "sum"),
         paid=("paid", "sum"),
     ).reset_index()
-    weekly["showup_pct"] = weekly.apply(lambda r: safe_pct(r["show_up"], r["booking"]), axis=1)
-    weekly["paid_pct"]   = weekly.apply(lambda r: safe_pct(r["paid"], r["show_up"]), axis=1)
+    weekly["showup_pct"] = weekly.apply(
+        lambda r: round(r["show_up"] / r["booking"] * 100, 1) if r["booking"] > 0 else 0.0,
+        axis=1
+    )
+    weekly["paid_pct"] = weekly.apply(
+        lambda r: round(r["paid"] / r["show_up"] * 100, 1) if r["show_up"] > 0 else 0.0,
+        axis=1
+    )
     weekly["label"] = weekly["week_start"].dt.strftime("W%V\n%d %b")
-    return weekly.sort_values("week_start").tail(12)  # maks 12 minggu terakhir
+    return weekly.sort_values("week_start").tail(12).reset_index(drop=True)
 
 
 def build_mom_data(df: pd.DataFrame) -> pd.DataFrame:
     """Agregat data per bulan."""
-    if df.empty:
+    if df is None or df.empty:
         return pd.DataFrame()
     df = df.copy()
-    df["tanggal"] = pd.to_datetime(df["tanggal"])
+    df["tanggal"] = pd.to_datetime(df["tanggal"], errors="coerce")
+    df = df.dropna(subset=["tanggal"])
+    if df.empty:
+        return pd.DataFrame()
     df["month"] = df["tanggal"].dt.to_period("M")
     monthly = df.groupby("month").agg(
         booking=("booking", "sum"),
         show_up=("show_up", "sum"),
         paid=("paid", "sum"),
     ).reset_index()
-    monthly["showup_pct"] = monthly.apply(lambda r: safe_pct(r["show_up"], r["booking"]), axis=1)
-    monthly["paid_pct"]   = monthly.apply(lambda r: safe_pct(r["paid"], r["show_up"]), axis=1)
+    monthly["showup_pct"] = monthly.apply(
+        lambda r: round(r["show_up"] / r["booking"] * 100, 1) if r["booking"] > 0 else 0.0,
+        axis=1
+    )
+    monthly["paid_pct"] = monthly.apply(
+        lambda r: round(r["paid"] / r["show_up"] * 100, 1) if r["show_up"] > 0 else 0.0,
+        axis=1
+    )
     monthly["label"] = monthly["month"].dt.strftime("%b %Y")
-    return monthly.sort_values("month")
+    return monthly.sort_values("month").reset_index(drop=True)
 
 
 def show_trend_charts(df: pd.DataFrame, title_prefix: str = ""):
