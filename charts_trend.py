@@ -111,6 +111,8 @@ def build_wow_data(df: pd.DataFrame) -> pd.DataFrame:
         axis=1
     )
     weekly["label"] = weekly["week_start"].dt.strftime("W%V\n%d %b")
+    # Filter hanya minggu yang ada datanya, lalu ambil 12 terakhir
+    weekly = weekly[weekly["booking"] > 0]
     return weekly.sort_values("week_start").tail(12).reset_index(drop=True)
 
 
@@ -138,6 +140,8 @@ def build_mom_data(df: pd.DataFrame) -> pd.DataFrame:
         axis=1
     )
     monthly["label"] = monthly["month"].dt.strftime("%b %Y")
+    # Filter hanya bulan yang ada datanya
+    monthly = monthly[monthly["booking"] > 0]
     return monthly.sort_values("month").reset_index(drop=True)
 
 
