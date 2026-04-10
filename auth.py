@@ -15,7 +15,7 @@ SPREADSHEET_ID = "11fP61xXfqgP3KnXPbBRSd22YSzixKYPM7GPLHR4c6YQ"
 ALL_CENTERS = ["TBT", "KGD", "KLM", "BTR", "BTY", "BDM", "BAL", "SUN", "PKY", "PLM"]
 
 # Center yang sudah punya sheet performance (untuk uji coba)
-ACTIVE_CENTERS = ["BTR", "KGD", "KLM", "TBT", "BTY", "BDM"]
+ACTIVE_CENTERS = ["TBT", "KGD"]
 
 
 @st.cache_resource(show_spinner=False)
@@ -76,37 +76,49 @@ def get_performance_df(center_code: str) -> pd.DataFrame:
                 return pd.DataFrame()
 
 
+def clean_int(val) -> int:
+    """Bersihkan nilai dari Google Sheets yang bisa berupa '3)', '3', atau ''."""
+    if not val or str(val).strip() == "":
+        return 0
+    try:
+        # Hapus semua karakter non-digit kecuali minus
+        cleaned = ''.join(c for c in str(val) if c.isdigit() or c == '-')
+        return int(cleaned) if cleaned else 0
+    except:
+        return 0
+
+
 def parse_performance_sheet(raw: list, center_code: str) -> pd.DataFrame:
     """
     Parse sheet horizontal menjadi DataFrame panjang.
     Struktur sheet:
-      Row 0 (index): link / kosong
-      Row 1 (index): nama EC di kolom pertama tiap grup (A, E, I, ...)
-      Row 2 (index): sub-header: tanggal, booking, show up, paid
-      Row 3+ (index): data harian
+      Row 0: link
+      Row 1: nama EC di col 0, 6, 12, 18, ... (setiap 6 kolom)
+      Row 2: header (tanggal, booking, show up, paid) per grup
+      Row 3+: data harian
+    Nilai dari Google Sheets bisa berupa '3)', '0)', dll — perlu dibersihkan.
     """
     if len(raw) < 4:
         return pd.DataFrame()
 
-    row_ec_names = raw[1]   # baris nama EC
-    row_subheader = raw[2]  # baris sub-header
-    data_rows = raw[3:]     # baris data
+    row_ec_names = raw[1]
+    row_subheader = raw[2]
+    data_rows = raw[3:]
 
-    # Cari posisi grup EC (setiap grup punya 4 kolom: tanggal, booking, show up, paid)
-    # Nama EC ada di kolom yang sub-headernya "tanggal"
+    # Cari posisi grup EC berdasarkan header "tanggal"
     groups = []
     i = 0
     while i < len(row_subheader):
         subh = row_subheader[i].strip().lower()
         if subh == "tanggal":
-            ec_name = row_ec_names[i].strip()
+            ec_name = row_ec_names[i].strip() if i < len(row_ec_names) else ""
             if ec_name:
                 groups.append({
                     "nama_ec": ec_name,
                     "col_tanggal": i,
                     "col_booking": i + 1,
-                    "col_showup": i + 2,
-                    "col_paid": i + 3,
+                    "col_showup":  i + 2,
+                    "col_paid":    i + 3,
                 })
             i += 4
         else:
@@ -120,24 +132,24 @@ def parse_performance_sheet(raw: list, center_code: str) -> pd.DataFrame:
                 tanggal_raw = row[g["col_tanggal"]].strip() if g["col_tanggal"] < len(row) else ""
                 if not tanggal_raw:
                     continue
-                booking = int(row[g["col_booking"]]) if g["col_booking"] < len(row) and row[g["col_booking"]] != "" else 0
-                show_up = int(row[g["col_showup"]]) if g["col_showup"] < len(row) and row[g["col_showup"]] != "" else 0
-                paid    = int(row[g["col_paid"]])   if g["col_paid"]   < len(row) and row[g["col_paid"]]   != "" else 0
+                tanggal = pd.to_datetime(tanggal_raw, dayfirst=True, errors="coerce")
+                if pd.isna(tanggal):
+                    continue
+                booking = clean_int(row[g["col_booking"]] if g["col_booking"] < len(row) else "")
+                show_up = clean_int(row[g["col_showup"]]  if g["col_showup"]  < len(row) else "")
+                paid    = clean_int(row[g["col_paid"]]    if g["col_paid"]    < len(row) else "")
                 records.append({
-                    "tanggal": pd.to_datetime(tanggal_raw, dayfirst=True, errors="coerce"),
+                    "tanggal": tanggal,
                     "nama_ec": g["nama_ec"],
                     "booking": booking,
                     "show_up": show_up,
-                    "paid": paid,
-                    "center": center_code,
+                    "paid":    paid,
+                    "center":  center_code,
                 })
             except Exception:
                 continue
 
-    df = pd.DataFrame(records)
-    if not df.empty:
-        df = df.dropna(subset=["tanggal"])
-    return df
+    return pd.DataFrame(records) if records else pd.DataFrame()
 
 
 @st.cache_data(ttl=300, show_spinner=False)

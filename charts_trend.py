@@ -33,26 +33,20 @@ def delta_label(current, previous):
 
 
 def make_bar_chart(labels, values, title, bar_color, show_delta_last=True):
-    """
-    Buat bar chart dengan:
-    - Label % di atas tiap bar
-    - Label delta (±%) merah/hijau di bar terakhir
-    """
+    """Bar chart dengan label % dan delta di bar terakhir."""
     fig = go.Figure()
 
-    # Warna bar — bar terakhir lebih gelap
     colors = [bar_color] * len(values)
-    if len(colors) > 0:
-        colors[-1] = bar_color.replace("0.7", "1.0").replace("0.65", "1.0")
 
     fig.add_trace(go.Bar(
-        x=labels,
+        x=list(range(len(labels))),
         y=values,
         marker_color=colors,
         text=[f"{v:.1f}%" for v in values],
         textposition="outside",
         textfont=dict(size=11, color="#3d3d5c"),
-        hovertemplate="<b>%{x}</b><br>%{y:.1f}%<extra></extra>",
+        hovertemplate="<b>%{customdata}</b><br>%{y:.1f}%<extra></extra>",
+        customdata=labels,
         cliponaxis=False,
     ))
 
@@ -61,7 +55,7 @@ def make_bar_chart(labels, values, title, bar_color, show_delta_last=True):
         delta_str, delta_color = delta_label(values[-1], values[-2])
         if delta_str:
             fig.add_annotation(
-                x=labels[-1],
+                x=len(labels) - 1,
                 y=values[-1],
                 text=f"<b>{delta_str}</b>",
                 showarrow=False,
@@ -76,9 +70,18 @@ def make_bar_chart(labels, values, title, bar_color, show_delta_last=True):
     fig.update_layout(
         **PLOTLY_LAYOUT,
         title=dict(text=title, font=dict(size=13, color="#3d3d5c"), x=0),
-        yaxis_range=[0, max(values) * 1.35 if values else 100],
+        yaxis_range=[0, max(values) * 1.4 if any(v > 0 for v in values) else 100],
         showlegend=False,
-        height=300,
+        height=320,
+        xaxis=dict(
+            tickmode="array",
+            tickvals=list(range(len(labels))),
+            ticktext=labels,
+            tickangle=-30,
+            tickfont=dict(size=10),
+            gridcolor="rgba(0,0,0,0.04)",
+            showline=False,
+        ),
     )
     return fig
 
