@@ -9,14 +9,6 @@ from datetime import timedelta
 
 # ── Helper ────────────────────────────────────────────────────────────────────
 
-_trend_chart_counter = {}
-
-def _get_unique_key(prefix: str, suffix: str) -> str:
-    key = f"{prefix}_{suffix}"
-    _trend_chart_counter[key] = _trend_chart_counter.get(key, 0) + 1
-    return f"{key}_{_trend_chart_counter[key]}"
-
-
 def safe_pct(num, den):
     return round((num / den * 100), 1) if den > 0 else 0.0
 
@@ -187,7 +179,7 @@ def show_trend_charts(df: pd.DataFrame, title_prefix: str = ""):
         "Tampilan",
         ["Week on Week", "Month on Month"],
         horizontal=True,
-        key=_get_unique_key(title_prefix, "trend_view"),
+        key=f"trend_view_{title_prefix.replace(" ", "_")}",
         label_visibility="collapsed",
     )
 
@@ -202,11 +194,11 @@ def show_trend_charts(df: pd.DataFrame, title_prefix: str = ""):
         with col_f1:
             min_w = st.number_input("Dari minggu ke-", min_value=1,
                                     max_value=total_weeks, value=max(1, total_weeks-7),
-                                    key=_get_unique_key(title_prefix, "wow_from"))
+                                    key=f"wow_from_{title_prefix.replace(" ", "_")}")
         with col_f2:
             max_w = st.number_input("Sampai minggu ke-", min_value=1,
                                     max_value=total_weeks, value=total_weeks,
-                                    key=_get_unique_key(title_prefix, "wow_to"))
+                                    key=f"wow_to_{title_prefix.replace(" ", "_")}")
 
         data_filtered = data_wow.iloc[int(min_w)-1 : int(max_w)].reset_index(drop=True)
         labels      = data_filtered["label"].tolist()
@@ -225,11 +217,11 @@ def show_trend_charts(df: pd.DataFrame, title_prefix: str = ""):
         with col_f1:
             from_month = st.selectbox("Dari bulan", available_months,
                                       index=0,
-                                      key=_get_unique_key(title_prefix, "mom_from"))
+                                      key=f"mom_from_{title_prefix.replace(" ", "_")}")
         with col_f2:
             to_month = st.selectbox("Sampai bulan", available_months,
                                     index=len(available_months)-1,
-                                    key=_get_unique_key(title_prefix, "mom_to"))
+                                    key=f"mom_to_{title_prefix.replace(" ", "_")}")
 
         from_idx = available_months.index(from_month)
         to_idx   = available_months.index(to_month)
@@ -263,7 +255,7 @@ def show_trend_charts(df: pd.DataFrame, title_prefix: str = ""):
         "Tampilan",
         ["Week on Week", "Month on Month"],
         horizontal=True,
-        key=_get_unique_key(title_prefix, "trend_view"),
+        key=f"trend_view_{title_prefix.replace(" ", "_")}",
         label_visibility="collapsed",
     )
 
@@ -281,11 +273,11 @@ def show_trend_charts(df: pd.DataFrame, title_prefix: str = ""):
         with col_f1:
             min_w = st.number_input("Dari minggu ke-", min_value=1,
                                     max_value=total_weeks, value=max(1, total_weeks-7),
-                                    key=_get_unique_key(title_prefix, "wow_from"))
+                                    key=f"wow_from_{title_prefix.replace(" ", "_")}")
         with col_f2:
             max_w = st.number_input("Sampai minggu ke-", min_value=1,
                                     max_value=total_weeks, value=total_weeks,
-                                    key=_get_unique_key(title_prefix, "wow_to"))
+                                    key=f"wow_to_{title_prefix.replace(" ", "_")}")
 
         data_filtered = data_wow.iloc[int(min_w)-1 : int(max_w)].reset_index(drop=True)
         labels      = data_filtered["label"].tolist()
@@ -305,11 +297,11 @@ def show_trend_charts(df: pd.DataFrame, title_prefix: str = ""):
         with col_f1:
             from_month = st.selectbox("Dari bulan", available_months,
                                       index=0,
-                                      key=_get_unique_key(title_prefix, "mom_from"))
+                                      key=f"mom_from_{title_prefix.replace(" ", "_")}")
         with col_f2:
             to_month = st.selectbox("Sampai bulan", available_months,
                                     index=len(available_months)-1,
-                                    key=_get_unique_key(title_prefix, "mom_to"))
+                                    key=f"mom_to_{title_prefix.replace(" ", "_")}")
 
         from_idx = available_months.index(from_month)
         to_idx   = available_months.index(to_month)

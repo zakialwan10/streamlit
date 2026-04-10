@@ -271,5 +271,5 @@ def show_ho_dashboard():
             df_trend = df_trend[df_trend["nama_ec"] == selected_ec]
 
         from charts_trend import show_trend_charts
-        prefix = selected_ec if selected_ec != "Semua EC" else (selected_center if selected_center != "Semua Center" else "Semua Center")
+        prefix = f"HO_{selected_ec if selected_ec != 'Semua EC' else selected_center}"
         show_trend_charts(df_trend, prefix)
