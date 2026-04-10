@@ -12,10 +12,10 @@ SCOPES = [
 SPREADSHEET_ID = "11fP61xXfqgP3KnXPbBRSd22YSzixKYPM7GPLHR4c6YQ"
 
 # Daftar semua center — tambahkan center baru di sini
-ALL_CENTERS = ["TBT", "KGD", "KLM", "BTR", "BTY", "BDM", "BAL", "SUN", "PKY", "PLM"]
+ALL_CENTERS = ["BTR", "KGD", "KLM", "TBT", "BTY", "BDM", "BAL", "SUN", "PKY", "PLM"]
 
 # Center yang sudah punya sheet performance (untuk uji coba)
-ACTIVE_CENTERS = ["TBT", "KGD"]
+ACTIVE_CENTERS = ["BTR", "KGD", "KLM", "TBT", "BTY", "BDM"]
 
 
 @st.cache_resource(show_spinner=False)
