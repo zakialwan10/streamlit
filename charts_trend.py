@@ -22,12 +22,16 @@ PLOTLY_LAYOUT = dict(
 )
 
 def delta_label(current, previous):
-    """Return delta string dan warna."""
+    """Return delta (%) relative, bukan absolute."""
     if previous == 0:
         return None, None
-    diff = round(current - previous, 1)
+
+    diff = ((current - previous) / previous) * 100
+    diff = round(diff, 2)
+
     color = "#059669" if diff >= 0 else "#dc2626"
     sign  = "+" if diff >= 0 else ""
+
     return f"{sign}{diff}%", color
 
 
