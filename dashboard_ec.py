@@ -118,7 +118,7 @@ def show_ec_dashboard():
     # ── WoW / MoM Trend Charts ────────────────────────────────────────────────
     st.markdown("<br>", unsafe_allow_html=True)
     from charts_trend import show_trend_charts
-    show_trend_charts(df_ec, f"EC_{nama}")
+    show_trend_charts(df_ec, f"EC_{nama}", centers="ec")
 
     # ── Performance Score ─────────────────────────────────────────────────────
     st.markdown("<br>", unsafe_allow_html=True)

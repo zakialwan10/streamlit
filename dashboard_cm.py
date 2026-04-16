@@ -176,7 +176,7 @@ def show_cm_dashboard():
     # ── WoW / MoM Trend Charts ────────────────────────────────────────────────
     st.markdown("<br>", unsafe_allow_html=True)
     from charts_trend import show_trend_charts
-    show_trend_charts(df, f"Center {center_id}")
+    show_trend_charts(df, f"Center {center_id}", centers=[center_id])
 
 
 def show_cm_score_table(center_id: str, bulan_label: str):

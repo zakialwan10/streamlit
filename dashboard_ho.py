@@ -271,5 +271,13 @@ def show_ho_dashboard():
             df_trend = df_trend[df_trend["nama_ec"] == selected_ec]
 
         from charts_trend import show_trend_charts
-        prefix = f"HO_{selected_ec if selected_ec != 'Semua EC' else selected_center}"
-        show_trend_charts(df_trend, prefix)
+        from auth import ACTIVE_CENTERS
+        if selected_ec != "Semua EC":
+            # Per EC — gunakan data harian
+            show_trend_charts(df_trend, f"HO_{selected_ec}", centers="ec")
+        elif selected_center != "Semua Center":
+            # Per Center — gunakan wow_mom_data
+            show_trend_charts(df_trend, f"HO_{selected_center}", centers=[selected_center])
+        else:
+            # Semua Center — gunakan wow_mom_data
+            show_trend_charts(df_trend, "HO_Semua_Center", centers=ACTIVE_CENTERS)
