@@ -193,7 +193,9 @@ def show_trend_charts(df: pd.DataFrame, title_prefix: str = "", centers: list = 
     if not use_loader:
         df_copy["tanggal"] = pd.to_datetime(df_copy["tanggal"])
 
-    safe_key = title_prefix.replace(" ", "_").replace("-", "_")
+    # Key unik berdasarkan prefix + mode centers
+    centers_str = str(centers) if centers else "all"
+    safe_key = (title_prefix + "_" + centers_str).replace(" ", "_").replace("-", "_").replace("[", "").replace("]", "").replace(",", "").replace("'", "").replace('"', "")[:60]
 
     view = st.radio(
         "Tampilan",
