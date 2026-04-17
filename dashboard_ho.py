@@ -271,7 +271,6 @@ def show_ho_dashboard():
             df_trend = df_trend[df_trend["nama_ec"] == selected_ec]
 
         from charts_trend import show_trend_charts
-        from auth import ACTIVE_CENTERS
         if selected_ec != "Semua EC":
             # Per EC — gunakan data harian
             show_trend_charts(df_trend, f"HO_{selected_ec}", centers="ec")
