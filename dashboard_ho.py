@@ -95,7 +95,7 @@ def show_ho_dashboard():
     st.markdown("<br>", unsafe_allow_html=True)
 
     # ── Tabs ─────────────────────────────────────────────────────────────────
-    tab1, tab2, tab3, tab4 = st.tabs(["🏢 Per Center", "🏆 Leaderboard EC", "📈 Tren Bulanan", "🎯 Performance Score"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["🏢 Per Center", "🏆 Leaderboard EC", "📈 Tren Bulanan", "🎯 Performance Score", "🔀 Diversified Channel"])
 
     with tab1:
         st.markdown("#### Performa per Center")
@@ -280,3 +280,36 @@ def show_ho_dashboard():
         else:
             # Semua Center — gunakan wow_mom_data
             show_trend_charts(df_trend, "HO_Semua_Center", centers=ACTIVE_CENTERS)
+
+    with tab5:
+        st.markdown("#### 🔀 Diversified Channel Score")
+        st.markdown("""
+        <p style='color:#6b6f8e; font-size:0.88rem; margin-bottom:1rem;'>
+            Pilih EC untuk melihat detail kalkulasi Diversified Channel Score.
+        </p>""", unsafe_allow_html=True)
+
+        # Ambil semua EC dari data
+        all_ec = df_all[["nama_ec","center"]].drop_duplicates().sort_values("nama_ec")
+
+        col_c, col_e = st.columns([1, 2])
+        with col_c:
+            center_filter_opts = ["Semua Center"] + sorted(all_ec["center"].unique().tolist())
+            center_filter = st.selectbox("Filter Center", center_filter_opts,
+                                         key="div_center_filter")
+        with col_e:
+            if center_filter != "Semua Center":
+                ec_list_div = all_ec[all_ec["center"] == center_filter]["nama_ec"].tolist()
+            else:
+                ec_list_div = all_ec["nama_ec"].tolist()
+
+            selected_div_ec = st.selectbox(
+                "Pilih EC",
+                ["— Pilih EC —"] + ec_list_div,
+                key="div_ec_select"
+            )
+
+        if selected_div_ec != "— Pilih EC —":
+            ec_center = all_ec[all_ec["nama_ec"] == selected_div_ec]["center"].iloc[0]
+            st.markdown("<br>", unsafe_allow_html=True)
+            from div_channel_ui import show_div_channel_detail
+            show_div_channel_detail(selected_div_ec, ec_center)
