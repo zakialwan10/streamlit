@@ -67,12 +67,44 @@ def show_ho_dashboard():
     if selected_ec != "Semua EC":
         df = df[df["nama_ec"] == selected_ec]
 
-    # ── Global KPI ────────────────────────────────────────────────────────────
-    total_b  = df["booking"].sum()
-    total_su = df["show_up"].sum()
-    total_p  = df["paid"].sum()
-    avg_su   = safe_pct(total_su, total_b)
-    avg_pd   = safe_pct(total_p, total_su)
+    # ── Global KPI dari wow_mom_data ─────────────────────────────────────────
+    from wow_mom_loader import get_trend_data, CENTER_ROWS
+
+    # Tentukan centers yang difilter
+    if selected_center != "Semua Center":
+        kpi_centers = [selected_center] if selected_center in CENTER_ROWS else None
+    else:
+        kpi_centers = ACTIVE_CENTERS
+
+    # Ambil data MoM dari wow_mom_data
+    trend_kpi = get_trend_data(kpi_centers)
+    mom_kpi   = trend_kpi.get("mom", None)
+
+    bulan_label = bulan_names[bulan - 1]
+
+    if mom_kpi is not None and not mom_kpi.empty:
+        row_kpi = mom_kpi[mom_kpi["label"].str.upper() == bulan_label.upper()]
+        if not row_kpi.empty:
+            total_b  = int(row_kpi["booking"].iloc[0])
+            total_su = int(row_kpi["show_up"].iloc[0])
+            total_p  = int(row_kpi["paid"].iloc[0])
+        else:
+            total_b = total_su = total_p = 0
+    else:
+        # Fallback ke data harian jika wow_mom_data tidak tersedia
+        total_b  = int(df["booking"].sum())
+        total_su = int(df["show_up"].sum())
+        total_p  = int(df["paid"].sum())
+
+    # Jika filter per EC, tetap pakai data harian (wow_mom_data tidak punya per-EC)
+    if selected_ec != "Semua EC":
+        df_ec_kpi = df[df["nama_ec"] == selected_ec]
+        total_b  = int(df_ec_kpi["booking"].sum())
+        total_su = int(df_ec_kpi["show_up"].sum())
+        total_p  = int(df_ec_kpi["paid"].sum())
+
+    avg_su = safe_pct(total_su, total_b)
+    avg_pd = safe_pct(total_p, total_su)
 
     c1,c2,c3,c4,c5 = st.columns(5)
     kpis = [
